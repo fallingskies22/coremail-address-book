@@ -17,6 +17,7 @@ var (
 	host              string
 	cookieCoreMail    string
 	cookieCoreMailSid string
+	ou                string
 )
 
 type Response struct {
@@ -35,15 +36,17 @@ func init() {
 	flag.StringVar(&host, "host", "mail.dlpu.edu.cn", "Coremail host")
 	flag.StringVar(&cookieCoreMail, "coremail_cookie", "", "Coremail value in Request Cookie")
 	flag.StringVar(&cookieCoreMailSid, "coremail_sid", "", "Coremail.sid value in Request Cookie")
+	flag.StringVar(&ou, "ou", "a", "ou")
 }
 
 func getAllGroup() [][]string {
 	url := buildURL("oab:getDirectories")
-	postData := fmt.Sprintf(`{dn: "a", attrIds: ["email"]}`)
+	fmt.Println(ou)
+	postData := fmt.Sprintf(`{dn: "`+ ou +`", attrIds: ["email"]}`)
 	resp := getResp(url, fmt.Sprintf("Coremail=%s", cookieCoreMail), postData)
 
 	//使用正则匹配出所有的组群
-	reg := regexp.MustCompile(`(?s)id":"(.{32})".*?"name":"(.*?)"`)
+	reg := regexp.MustCompile(`(?s)id":"(.*?)".*?"name":"(.*?)"`)
 	result1 := reg.FindAllStringSubmatch(resp, -1)
 	// fmt.Println("==================")
 	// fmt.Println(result1)
@@ -58,10 +61,12 @@ func getAllGroup() [][]string {
 func main() {
 	flag.Parse()
 
+
 	// 先获取组群
 	allGroupID := getAllGroup()
+	allGroupID = allGroupID[1:]
 
-	f, err := os.Create(host + ".email_list.csv")
+	f, err := os.Create(host + "_"+ ou + ".email_list.csv")
 	if err != nil {
 		panic(err)
 	}
@@ -75,7 +80,7 @@ func main() {
 	for i := 0; i < len(allGroupID); i++ {
 		url := buildURL("oab:listEx")
 		// a表示all，"/"后面就是组群ID
-		postData := fmt.Sprintf(`{"dn":"a/%s","returnAttrs":["true_name","email"],"start":%d,"limit":%d,"defaultReturnMeetingRoom":false}`, allGroupID[i][1], 0, 1)
+		postData := fmt.Sprintf(`{"dn":"` + ou + `/%s","returnAttrs":["true_name","email"],"start":%d,"limit":%d,"defaultReturnMeetingRoom":false}`, allGroupID[i][1], 0, 1)
 		fmt.Println("======", postData)
 		respCount := getResp(url, fmt.Sprintf("Coremail=%s", cookieCoreMail), postData)
 
@@ -83,7 +88,7 @@ func main() {
 		json.Unmarshal([]byte(respCount), &responseCount)
 
 		for j := 0; j < responseCount.Total; j += 100 {
-			postData := fmt.Sprintf(`{"dn":"a/%s","returnAttrs":["true_name","email"],"start":%d,"limit":%d,"defaultReturnMeetingRoom":false}`, allGroupID[i][1], j, 100)
+			postData := fmt.Sprintf(`{"dn":"`+ ou +`/%s","returnAttrs":["true_name","email"],"start":%d,"limit":%d,"defaultReturnMeetingRoom":false}`, allGroupID[i][1], j, 100)
 			respList := getResp(url, fmt.Sprintf("Coremail=%s", cookieCoreMail), postData)
 			var responseList Response
 			json.Unmarshal([]byte(respList), &responseList)
