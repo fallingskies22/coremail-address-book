@@ -31,6 +31,8 @@ Usage of ./main:
         Coremail.sid value in Request Cookie
   -host string
         Coremail host (default "mail.dlpu.edu.cn")
+  -ou   string
+        ou (default "a")
 
 // 执行导出
 // -coremail_cookie 与 -coremail_sid 可在浏览器登录邮箱查看
